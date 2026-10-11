@@ -16,6 +16,7 @@ export const THINK_BONUS = 5; // +здоровья за "Я думаю о теб
 export const THINK_COOLDOWN_MS = 60 * 60 * 1000; // 1 час
 export const MOOD_BONUS = 10; // +здоровья за настроение (раз в сутки)
 export const POINTS_PER_LEVEL = 50;
+export const HEALTH_DECAY_PER_HOUR = 1; // 1% здоровья уходит за каждый пропущенный час
 
 // --- Участники ---
 export const USERS = {
