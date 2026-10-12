@@ -4,7 +4,9 @@ import {
   SUPABASE_ANON_KEY,
   BOT_TOKEN,
   USERS,
+  HEALTH_DECAY_PER_HOUR // <--- Добавили сюда
 } from '../config';
+
 
 /** Сегодняшняя дата в локальном часовом поясе в формате YYYY-MM-DD */
 export const todayLocal = () => new Date().toLocaleDateString('en-CA');
