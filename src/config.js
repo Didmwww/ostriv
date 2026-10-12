@@ -3,12 +3,12 @@
 // если переменных нет — остаются заглушки.
 // ============================================================
 
-export const SUPABASE_URL = 'https://koptwbluifebhneeewls.supabase.co';
-export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvcHR3Ymx1aWZlYmhuZWVld2xzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MzEyNzgsImV4cCI6MjEwNzMwNzI3OH0.bp7n8Kb2N1JGHI_X79kbtlgweO2OO8RxfRa1RJvpAGo';
-// --- Telegram (заглушки) ---
-export const BOT_TOKEN = '8872383561:AAFm_j5wBibk3fjqq6cjfi3enV6--nLToI4';
-export const DIMA_CHAT_ID = '921322125';
-export const MASHKA_CHAT_ID = '840206126';
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const BOT_TOKEN = import.meta.env.VITE_BOT_TOKEN;
+export const DIMA_CHAT_ID = import.meta.env.VITE_DIMA_CHAT_ID;
+export const MASHKA_CHAT_ID = import.meta.env.VITE_MASHKA_CHAT_ID;
+
 
 // --- Игровые константы ---
 export const STORAGE_KEY = 'garden:me';
