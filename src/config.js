@@ -15,7 +15,6 @@ export const STORAGE_KEY = 'garden:me';
 export const THINK_BONUS = 5; // +здоровья за "Я думаю о тебе"
 export const THINK_COOLDOWN_MS = 60 * 60 * 1000; // 1 час
 export const MOOD_BONUS = 10; // +здоровья за настроение (раз в сутки)
-export const POINTS_PER_LEVEL = 50;
 export const HEALTH_DECAY_PER_HOUR = 1; // 1% здоровья уходит за каждый пропущенный час
 
 // --- Участники ---
@@ -34,18 +33,39 @@ export const MOODS = [
 ];
 
 // --- Уровни отношений ---
+// --- Уровни отношений ---
+const LEVEL_THRESHOLDS = [0, 50, 100, 200, 400, 800, 1600];
+
 const LEVEL_TITLES = [
-  'Росток знакомства',
-  'Первое свидание',
-  'Тёплые чувства',
-  'Крепкая связь',
-  'Родные души',
-  'Вечная любовь',
+  'Росток знакомства',  // Уровень 1 (от 0 очков)
+  'Первое свидание',    // Уровень 2 (от 50 очков)
+  'Тёплые чувства',     // Уровень 3 (от 100 очков)
+  'Крепкая связь',      // Уровень 4 (от 200 очков)
+  'Родные души',        // Уровень 5 (от 400 очков)
+  'Вечная любовь',      // Уровень 6 (от 800 очков)
+  'Космическая связь'   // Уровень 7 (от 1600 очков) — бонус для хардкора!
 ];
 
 export function getLevelInfo(points = 0) {
-  const level = Math.floor(points / POINTS_PER_LEVEL) + 1;
+  let level = 1;
+  
+  // Ищем максимальный порог, который вы уже преодолели
+  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (points >= LEVEL_THRESHOLDS[i]) {
+      level = i + 1;
+      break;
+    }
+  }
+
+  // Забираем соответствующее название
   const title = LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)];
-  const toNext = POINTS_PER_LEVEL - (points % POINTS_PER_LEVEL);
+
+  // Считаем, сколько очков осталось до следующего
+  let toNext = 0;
+  if (level < LEVEL_THRESHOLDS.length) {
+    toNext = LEVEL_THRESHOLDS[level] - points;
+  }
+
   return { level, title, toNext };
 }
+
