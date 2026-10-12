@@ -20,26 +20,19 @@ class GardenService {
   }
 
   /** Состояние сада (единственная строка id = 1) */
-async getGarden() {
-    // 1. Получаем текущие данные из базы
+  async getGarden() {
     const { data, error } = await this.db.from('garden_state').select('*').eq('id', 1).single();
     if (error) throw error;
 
-    // 2. Рассчитываем, сколько часов прошло с последнего обновления
     const now = new Date();
     const lastUpdate = new Date(data.updated_at);
     const hoursPassed = (now - lastUpdate) / (1000 * 60 * 60);
 
-    // 3. Вычисляем потерю здоровья (только если прошел хотя бы 1 час)
     if (hoursPassed >= 1) {
-      // Подключаем настройку из конфига (нужно добавить импорт HEALTH_DECAY_PER_HOUR сверху файла!)
-      const { HEALTH_DECAY_PER_HOUR } = await import('../config'); 
+      // Считаем потери, используя стабильный импорт из начала файла
       const healthLost = Math.floor(hoursPassed) * HEALTH_DECAY_PER_HOUR;
-      
-      // Рассчитываем новое здоровье (но не меньше 0)
       const newHealth = Math.max(0, data.health - healthLost);
 
-      // Если здоровье реально упало, обновляем его в базе
       if (newHealth < data.health) {
         const { data: updatedData, error: updateError } = await this.db
           .from('garden_state')
@@ -49,13 +42,13 @@ async getGarden() {
           .single();
           
         if (!updateError) {
-          return updatedData; // Возвращаем уже "погрустневший" сад
+          return updatedData; 
         }
       }
     }
-
-    return data; // Если прошел меньше часа, отдаем как есть
+    return data;
   }
+
   /** Настроения и время последнего "думаю о тебе" обоих участников */
   async getMoods() {
     const { data, error } = await this.db.from('user_moods').select('*');
