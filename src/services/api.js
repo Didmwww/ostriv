@@ -4,7 +4,6 @@ import {
   SUPABASE_ANON_KEY,
   BOT_TOKEN,
   USERS,
-  HEALTH_DECAY_PER_HOUR // <--- Добавили сюда
 } from '../config';
 
 
@@ -19,64 +18,44 @@ class GardenService {
     this.db = client;
   }
 
-  /** Состояние сада (единственная строка id = 1) */
+  /**
+   * Состояние сада. Перед чтением сервер (SQL-функция apply_decay) списывает
+   * накопленное убывание за время общей тишины — один раз и атомарно,
+   * поэтому два телефона не спишут проценты дважды.
+   */
   async getGarden() {
-    const { data, error } = await this.db.from('garden_state').select('*').eq('id', 1).single();
+    const { data, error } = await this.db.rpc('apply_decay');
     if (error) throw error;
-
-    const now = new Date();
-    const lastUpdate = new Date(data.updated_at);
-    const hoursPassed = (now - lastUpdate) / (1000 * 60 * 60);
-
-    if (hoursPassed >= 1) {
-      // Считаем потери, используя стабильный импорт из начала файла
-      const healthLost = Math.floor(hoursPassed) * HEALTH_DECAY_PER_HOUR;
-      const newHealth = Math.max(0, data.health - healthLost);
-
-      if (newHealth < data.health) {
-        const { data: updatedData, error: updateError } = await this.db
-          .from('garden_state')
-          .update({ health: newHealth, updated_at: now.toISOString() })
-          .eq('id', 1)
-          .select()
-          .single();
-          
-        if (!updateError) {
-          return updatedData; 
-        }
-      }
-    }
     return data;
   }
 
-  /** Настроения и время последнего "думаю о тебе" обоих участников */
+  /** Настроения, время последней активности и последнего "думаю о тебе" обоих участников */
   async getMoods() {
     const { data, error } = await this.db.from('user_moods').select('*');
     if (error) throw error;
     return data;
   }
 
-  /** Атомарно меняет здоровье через SQL-функцию add_health. Возвращает новое состояние сада. */
-  async addHealth(delta) {
-    const { data, error } = await this.db.rpc('add_health', { delta });
-    if (error) throw error;
-    return data;
-  }
-
-  /** Фиксирует момент нажатия "Я думаю о тебе" (для кулдауна, работает между устройствами) */
-  async markThought(userId) {
-    const { data, error } = await this.db
-      .from('user_moods')
-      .update({ last_think_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-      .eq('user_id', userId)
-      .select()
-      .single();
+  /**
+   * Фиксирует активность пользователя (SQL-функция register_activity):
+   *  1) списывает убывание за уже прошедшую тишину,
+   *  2) обновляет last_activity_at (и last_think_at для кнопки "думаю о тебе"),
+   *  3) прибавляет delta процентов (лимит 0..100) и обнуляет счётчик убывания.
+   * Возвращает новое состояние сада.
+   */
+  async registerActivity(userId, delta = 0, { think = false } = {}) {
+    const { data, error } = await this.db.rpc('register_activity', {
+      p_user: userId,
+      p_delta: delta,
+      p_think: think,
+    });
     if (error) throw error;
     return data;
   }
 
   /**
-   * Сохраняет настроение. Если сегодня бонус ещё не брали — начисляет его.
+   * Сохраняет настроение. Любая смена настроения — это активность;
+   * если сегодня бонус ещё не брали — дополнительно начисляет его.
    * @returns {Promise<{bonusGiven: boolean}>}
    */
   async setMood(userId, mood, bonusAmount) {
@@ -97,7 +76,7 @@ class GardenService {
       .eq('user_id', userId);
     if (error) throw error;
 
-    if (bonusGiven) await this.addHealth(bonusAmount);
+    await this.registerActivity(userId, bonusGiven ? bonusAmount : 0);
     return { bonusGiven };
   }
 
