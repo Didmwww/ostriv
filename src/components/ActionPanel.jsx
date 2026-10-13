@@ -49,7 +49,7 @@ export default function ActionPanel({ myRow, busy, onThink, onMood }) {
           <Heart size={22} fill={thinkDisabled ? 'none' : 'currentColor'} />
           {left > 0 ? `Снова через ${formatTime(left)}` : 'Я думаю о тебе ❤️'}
         </motion.button>
-        <p className="mt-2 text-center text-xs text-rose-700/60">+{THINK_BONUS} к здоровью · раз в час</p>
+        <p className="mt-2 text-center text-xs text-rose-700/60">+{THINK_BONUS}% к шкале · раз в час</p>
       </div>
 
       <MoodSelector

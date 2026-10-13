@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { LogOut } from 'lucide-react';
 import {
   MOOD_BONUS,
+  REFRESH_INTERVAL_MS,
   STORAGE_KEY,
   THINK_BONUS,
   THINK_COOLDOWN_MS,
@@ -12,6 +13,7 @@ import { gardenService, telegramNotifier } from './services/api';
 import LoginScreen from './components/LoginScreen';
 import PlantDisplay from './components/PlantDisplay';
 import ActionPanel from './components/ActionPanel';
+import SecretMessage from './components/SecretMessage';
 
 export default function App() {
   // Кто сейчас за телефоном (dima | mashka), хранится в localStorage
@@ -32,7 +34,11 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   }, []);
 
-  /** Загружает актуальное состояние сада и настроений */
+  /**
+   * Загружает актуальное состояние сада и настроений.
+   * getGarden() заодно просит сервер списать накопленное убывание,
+   * а garden.health — единственный источник правды и для шкалы, и для вида растения.
+   */
   const refresh = useCallback(async () => {
     try {
       const [g, m] = await Promise.all([gardenService.getGarden(), gardenService.getMoods()]);
@@ -57,6 +63,14 @@ export default function App() {
     };
   }, [me, refresh]);
 
+  // Пока приложение открыто — раз в минуту пересчитываем убывание,
+  // чтобы растение вяло прямо на глазах, без перезагрузки страницы
+  useEffect(() => {
+    if (!me) return undefined;
+    const timer = setInterval(refresh, REFRESH_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [me, refresh]);
+
   const handleSelectUser = (id) => {
     localStorage.setItem(STORAGE_KEY, id);
     setMe(id);
@@ -68,17 +82,15 @@ export default function App() {
     setGarden(null);
   };
 
-  /** "Я думаю о тебе": +5 здоровья, кулдаун, уведомление партнёру */
+  /** "Я думаю о тебе": +5%, активность, кулдаун, уведомление партнёру */
   const handleThink = async () => {
     const last = moods[me]?.last_think_at;
     if (last && new Date(last).getTime() + THINK_COOLDOWN_MS > Date.now()) return; // защита от двойного клика
 
     setBusy(true);
     try {
-      const updatedGarden = await gardenService.addHealth(THINK_BONUS);
-      const updatedRow = await gardenService.markThought(me);
-      setGarden(updatedGarden);
-      setMoods((prev) => ({ ...prev, [me]: updatedRow }));
+      await gardenService.registerActivity(me, THINK_BONUS, { think: true });
+      await refresh();
 
       const sent = await telegramNotifier.notifyPartner(me, `${USERS[me].name} прямо сейчас думает о тебе! ❤️`);
       showToast(sent ? 'Сообщение улетело 💌' : 'Сад полит 🌱 (Telegram не ответил)');
@@ -89,13 +101,13 @@ export default function App() {
     }
   };
 
-  /** Выбор настроения: обновляет статус, раз в сутки даёт +10 */
+  /** Выбор настроения: активность + раз в сутки бонус +10% */
   const handleMood = async (value) => {
     setBusy(true);
     try {
       const { bonusGiven } = await gardenService.setMood(me, value, MOOD_BONUS);
       await refresh();
-      showToast(bonusGiven ? `+${MOOD_BONUS} к здоровью 🌸` : 'Настроение обновлено');
+      showToast(bonusGiven ? `+${MOOD_BONUS}% к шкале 🌸` : 'Настроение обновлено');
     } catch (e) {
       showToast(`Ошибка: ${e.message}`);
     } finally {
@@ -142,6 +154,7 @@ export default function App() {
               partnerMood={moods[partnerId]?.mood ?? null}
             />
             <ActionPanel myRow={moods[me]} busy={busy} onThink={handleThink} onMood={handleMood} />
+            <SecretMessage />
           </div>
         )}
       </div>

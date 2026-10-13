@@ -7,7 +7,7 @@ export default function MoodSelector({ value, bonusAvailable, disabled, onSelect
       <div className="flex items-baseline justify-between mb-4">
         <h3 className="font-medium text-rose-900">Как ты сегодня?</h3>
         <span className="text-xs text-rose-700/60">
-          {bonusAvailable ? `+${MOOD_BONUS} к здоровью сегодня` : 'Бонус за сегодня получен'}
+          {bonusAvailable ? `+${MOOD_BONUS}% к шкале сегодня` : 'Бонус за сегодня получен'}
         </span>
       </div>
 

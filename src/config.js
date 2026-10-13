@@ -12,10 +12,13 @@ export const MASHKA_CHAT_ID = import.meta.env.VITE_MASHKA_CHAT_ID;
 
 // --- Игровые константы ---
 export const STORAGE_KEY = 'garden:me';
-export const THINK_BONUS = 5; // +здоровья за "Я думаю о тебе"
+export const THINK_BONUS = 5; // +5% к шкале за "Я думаю о тебе"
 export const THINK_COOLDOWN_MS = 60 * 60 * 1000; // 1 час
-export const MOOD_BONUS = 10; // +здоровья за настроение (раз в сутки)
-export const HEALTH_DECAY_PER_HOUR = 1; // 1% здоровья уходит за каждый пропущенный час
+export const MOOD_BONUS = 10; // +10% к шкале за настроение (раз в сутки)
+export const REFRESH_INTERVAL_MS = 60 * 1000; // как часто открытое приложение пересчитывает убывание
+
+// Убывание (1 час тишины без потерь, затем −1% за каждый следующий час)
+// считается на сервере в SQL-функции apply_decay — см. миграцию.
 
 // --- Участники ---
 export const USERS = {
@@ -25,10 +28,10 @@ export const USERS = {
 
 // --- Настроение ---
 export const MOODS = [
-  { value: 1, emoji: '😢', label: 'Грустно' },
-  { value: 2, emoji: '☁️', label: 'Пасмурно' },
+  { value: 1, emoji: '😥', label: 'Грустно' },
+  { value: 2, emoji: '😡', label: 'Злюсь' },
   { value: 3, emoji: '😐', label: 'Нормально' },
-  { value: 4, emoji: '☀️', label: 'Солнечно' },
+  { value: 4, emoji: '🙂', label: 'Хорошо' },
   { value: 5, emoji: '🤩', label: 'Восторг' },
 ];
 
@@ -48,7 +51,7 @@ const LEVEL_TITLES = [
 
 export function getLevelInfo(points = 0) {
   let level = 1;
-  
+
   // Ищем максимальный порог, который вы уже преодолели
   for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
     if (points >= LEVEL_THRESHOLDS[i]) {
