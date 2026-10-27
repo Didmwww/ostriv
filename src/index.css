@@ -17,3 +17,10 @@ body {
   overscroll-behavior-y: none;
   user-select: none;
 }
+
+/* Поля ввода должны оставаться редактируемыми: на iOS Safari user-select: none у body блокирует набор текста */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}

@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { LogOut } from 'lucide-react';
 import {
   MOOD_BONUS,
+  PHOTOS_PAGE_SIZE,
+  PHOTO_BONUS,
   REFRESH_INTERVAL_MS,
   STORAGE_KEY,
   THINK_BONUS,
@@ -10,9 +12,11 @@ import {
   USERS,
 } from './config';
 import { gardenService, telegramNotifier } from './services/api';
+import { compressImage } from './services/image';
 import LoginScreen from './components/LoginScreen';
 import PlantDisplay from './components/PlantDisplay';
 import ActionPanel from './components/ActionPanel';
+import PhotoDiary from './components/PhotoDiary';
 import SecretMessage from './components/SecretMessage';
 
 export default function App() {
@@ -23,6 +27,8 @@ export default function App() {
   });
   const [garden, setGarden] = useState(null);
   const [moods, setMoods] = useState({});
+  const [photos, setPhotos] = useState([]);
+  const photoLimit = useRef(PHOTOS_PAGE_SIZE); // сколько снимков запрашивать; растёт по кнопке «Показать ещё»
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
@@ -41,9 +47,19 @@ export default function App() {
    */
   const refresh = useCallback(async () => {
     try {
-      const [g, m] = await Promise.all([gardenService.getGarden(), gardenService.getMoods()]);
+      // getGarden() идёт первым по смыслу: сервер заодно списывает убывание и штрафы за пропущенные фото
+      const [g, m, p] = await Promise.all([
+        gardenService.getGarden(),
+        gardenService.getMoods(),
+        // сбой галереи (например, миграция 004 ещё не выполнена) не должен ломать весь сад
+        gardenService.getPhotos(photoLimit.current).catch((e) => {
+          console.warn('[Photos] Не удалось загрузить снимки:', e.message);
+          return null;
+        }),
+      ]);
       setGarden(g);
       setMoods(Object.fromEntries(m.map((row) => [row.user_id, row])));
+      if (p) setPhotos(p);
       setError(null);
     } catch (e) {
       setError(e.message ?? 'Не удалось подключиться к Supabase');
@@ -137,6 +153,26 @@ export default function App() {
     }
   };
 
+  /** Фото дня: сжатие на телефоне → загрузка → +5% к шкале (один раз в сутки, проверяет сервер) */
+  const handlePhoto = async (file) => {
+    setBusy(true);
+    try {
+      const blob = await compressImage(file);
+      await gardenService.submitPhoto(me, blob);
+      await refresh();
+      showToast(`Фото добавлено, +${PHOTO_BONUS}% к шкале 📸`);
+    } catch (e) {
+      showToast(`Ошибка: ${e.message}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleMorePhotos = async () => {
+    photoLimit.current += PHOTOS_PAGE_SIZE;
+    await refresh();
+  };
+
   // --- Экран входа ---
   if (!me) return <LoginScreen onSelect={handleSelectUser} />;
 
@@ -176,6 +212,14 @@ export default function App() {
               partnerMood={moods[partnerId]?.mood ?? null}
             />
             <ActionPanel myRow={moods[me]} busy={busy} onThink={handleThink} onMood={handleMood} onTalk={handleTalk} />
+            <PhotoDiary
+              me={me}
+              photos={photos}
+              busy={busy}
+              hasMore={photos.length >= photoLimit.current}
+              onSubmit={handlePhoto}
+              onMore={handleMorePhotos}
+            />
             <SecretMessage />
           </div>
         )}

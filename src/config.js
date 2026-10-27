@@ -18,6 +18,17 @@ export const MOOD_BONUS = 10; // +10% к шкале за настроение (�
 export const REFRESH_INTERVAL_MS = 60 * 1000; // как часто открытое приложение пересчитывает убывание
 export const TALK_MAX_LENGTH = 300; // максимальная длина темы в сообщении "Я хочу поговорить о…"
 
+// --- Фото дня ---
+// Награда (+5) и штраф (−10% за пропущенный день) считаются на сервере — см. миграцию 004_daily_photos.sql.
+// Здесь значения только для подсказок в интерфейсе: меняя их, меняйте и SQL.
+export const PHOTO_BONUS = 5;
+export const PHOTO_PENALTY = 10;
+export const PHOTO_TZ = 'Europe/Kyiv'; // сутки "с 00:00 до 23:59" считаются по этому часовому поясу
+export const PHOTO_BUCKET = 'garden-photos'; // публичный бакет Supabase Storage
+export const PHOTO_MAX_SIDE = 1280; // длинная сторона фото после сжатия, px
+export const PHOTO_JPEG_QUALITY = 0.82;
+export const PHOTOS_PAGE_SIZE = 24; // сколько снимков показывать, дальше — кнопка «Показать ещё»
+
 // Убывание (1 час тишины без потерь, затем −2% за каждый следующий час)
 // считается на сервере в SQL-функции apply_decay — см. миграцию 003_decay_rate_2pct.sql.
 

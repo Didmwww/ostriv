@@ -4,11 +4,16 @@ import {
   SUPABASE_ANON_KEY,
   BOT_TOKEN,
   USERS,
+  PHOTO_BUCKET,
+  PHOTO_TZ,
 } from '../config';
 
 
 /** Сегодняшняя дата в локальном часовом поясе в формате YYYY-MM-DD */
 export const todayLocal = () => new Date().toLocaleDateString('en-CA');
+
+/** Сегодняшняя дата для фото дня (сутки по Киеву, как на сервере) в формате YYYY-MM-DD */
+export const todayForPhotos = () => new Date().toLocaleDateString('en-CA', { timeZone: PHOTO_TZ });
 
 // ============================================================
 // GardenService — всё общение с Supabase
@@ -80,12 +85,52 @@ class GardenService {
     return { bonusGiven };
   }
 
+  /** Последние снимки обоих участников, новые первыми */
+  async getPhotos(limit) {
+    const { data, error } = await this.db
+      .from('daily_photos')
+      .select('id, user_id, photo_date, path, taken_at')
+      .order('taken_at', { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return data;
+  }
+
+  /** Публичная ссылка на файл снимка в хранилище */
+  photoUrl(path) {
+    return this.db.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
+  }
+
+  /**
+   * Загружает фото дня: сначала файл в Storage, затем SQL-функция submit_photo,
+   * которая атомарно проверяет "одно фото в сутки" и начисляет +5 к шкале.
+   */
+  async submitPhoto(userId, blob) {
+    const path = `${userId}/${Date.now()}.jpg`;
+    const storage = this.db.storage.from(PHOTO_BUCKET);
+
+    const { error: uploadError } = await storage.upload(path, blob, {
+      contentType: 'image/jpeg',
+      cacheControl: '31536000',
+      upsert: false,
+    });
+    if (uploadError) throw uploadError;
+
+    const { data, error } = await this.db.rpc('submit_photo', { p_user: userId, p_path: path });
+    if (error) {
+      await storage.remove([path]); // лишний файл убираем; если прав нет — безвредно остаётся в хранилище
+      throw error;
+    }
+    return data;
+  }
+
   /** Подписка на изменения в реальном времени. Возвращает функцию отписки. */
   subscribe(onChange) {
     const channel = this.db
       .channel(`garden-changes-${Math.random().toString(36).slice(2)}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'garden_state' }, onChange)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'user_moods' }, onChange)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_photos' }, onChange)
       .subscribe();
     return () => this.db.removeChannel(channel);
   }
