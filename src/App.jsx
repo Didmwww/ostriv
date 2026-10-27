@@ -115,6 +115,28 @@ export default function App() {
     }
   };
 
+  /**
+   * "Я хочу поговорить о…": только уведомление партнёру в Telegram.
+   * Ни наград, ни влияния на шкалу и таймер убывания — активность не фиксируем.
+   * @returns {Promise<boolean>} true, если сообщение доставлено (тогда поле очищается)
+   */
+  const handleTalk = async (topic) => {
+    setBusy(true);
+    try {
+      const sent = await telegramNotifier.notifyPartner(
+        me,
+        `💬 ${USERS[me].name} хочет поговорить о ${topic}`,
+      );
+      showToast(sent ? 'Сообщение отправлено 💌' : 'Не удалось отправить в Telegram, попробуй ещё раз');
+      return sent;
+    } catch (e) {
+      showToast(`Ошибка: ${e.message}`);
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // --- Экран входа ---
   if (!me) return <LoginScreen onSelect={handleSelectUser} />;
 
@@ -153,7 +175,7 @@ export default function App() {
               partnerId={partnerId}
               partnerMood={moods[partnerId]?.mood ?? null}
             />
-            <ActionPanel myRow={moods[me]} busy={busy} onThink={handleThink} onMood={handleMood} />
+            <ActionPanel myRow={moods[me]} busy={busy} onThink={handleThink} onMood={handleMood} onTalk={handleTalk} />
             <SecretMessage />
           </div>
         )}

@@ -4,6 +4,7 @@ import { Heart } from 'lucide-react';
 import { THINK_BONUS, THINK_COOLDOWN_MS } from '../config';
 import { todayLocal } from '../services/api';
 import MoodSelector from './MoodSelector';
+import TalkRequest from './TalkRequest';
 
 /** Хук обратного отсчёта: сколько миллисекунд осталось до конца кулдауна */
 function useCooldown(lastIso) {
@@ -27,7 +28,7 @@ const formatTime = (ms) => {
   return `${mm}:${ss}`;
 };
 
-export default function ActionPanel({ myRow, busy, onThink, onMood }) {
+export default function ActionPanel({ myRow, busy, onThink, onMood, onTalk }) {
   const left = useCooldown(myRow?.last_think_at);
   const thinkDisabled = busy || left > 0;
   const bonusAvailable = myRow?.mood_bonus_date !== todayLocal();
@@ -58,6 +59,8 @@ export default function ActionPanel({ myRow, busy, onThink, onMood }) {
         disabled={busy}
         onSelect={onMood}
       />
+
+      <TalkRequest disabled={busy} onSend={onTalk} />
     </section>
   );
 }

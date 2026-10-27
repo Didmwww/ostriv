@@ -16,6 +16,7 @@ export const THINK_BONUS = 5; // +5% к шкале за "Я думаю о теб
 export const THINK_COOLDOWN_MS = 60 * 60 * 1000; // 1 час
 export const MOOD_BONUS = 10; // +10% к шкале за настроение (раз в сутки)
 export const REFRESH_INTERVAL_MS = 60 * 1000; // как часто открытое приложение пересчитывает убывание
+export const TALK_MAX_LENGTH = 300; // максимальная длина темы в сообщении "Я хочу поговорить о…"
 
 // Убывание (1 час тишины без потерь, затем −2% за каждый следующий час)
 // считается на сервере в SQL-функции apply_decay — см. миграцию 003_decay_rate_2pct.sql.
