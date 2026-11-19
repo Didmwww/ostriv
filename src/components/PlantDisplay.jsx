@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { MOODS, USERS, getLevelInfo } from '../config';
+import ReturnTimer from './ReturnTimer';
 
 // Описание стадий растения: эмодзи, подпись, анимация и CSS-фильтр
 const STAGES = {
@@ -48,6 +49,9 @@ export default function PlantDisplay({ health, totalPoints, partnerId, partnerMo
 
   return (
     <section className="flex flex-col items-center gap-6">
+      {/* Таймер «Возвращение» — над настроением партнёра */}
+      <ReturnTimer />
+
       {/* Настроение партнёра */}
       <div className="flex items-center gap-3 rounded-3xl bg-rose-50 shadow-neu-sm px-5 py-2.5">
         <span className="text-sm text-rose-800/80">Настроение {USERS[partnerId].genitive}:</span>
